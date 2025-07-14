@@ -70,7 +70,7 @@ The workflow includes several jobs:
 
 4. **Install OPA (for local testing):**
    ```bash
-   curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v0.57.0/opa_linux_amd64_static
+   curl -L -o opa https://github.com/open-policy-agent/opa/releases/latest/download/opa_linux_amd64_static
    chmod +x opa
    sudo mv opa /usr/local/bin/
    ```
@@ -83,7 +83,7 @@ The workflow includes several jobs:
 6. **Test API security policy:**
    ```bash
    echo '{"method": "GET", "path": "/hello", "query_params": {"name": "test"}, "headers": {"user-agent": "Mozilla/5.0"}, "request_count": 10, "time_window": "minute"}' | \
-   opa eval -d policies/api_security.rego "data.api.security.decision" -I
+   opa eval -d policies/api_security.rego "data.api.security.decision" --stdin-input
    ```
 
 ## OPA Integration Benefits

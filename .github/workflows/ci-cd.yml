@@ -8,7 +8,7 @@ on:
 
 env:
   PHP_VERSION: '8.2'
-  OPA_VERSION: '0.57.0'
+  OPA_VERSION: 'latest'
 
 jobs:
   test:
@@ -79,17 +79,17 @@ jobs:
       run: |
         # Test valid requests
         echo '{"method": "GET", "path": "/hello", "query_params": {"name": "test"}, "headers": {"user-agent": "Mozilla/5.0"}, "request_count": 10, "time_window": "minute"}' | \
-        opa eval -d policies/api_security.rego "data.api.security.decision" -I
+        opa eval -d policies/api_security.rego "data.api.security.decision" --stdin-input
         
         # Test invalid requests
         echo '{"method": "POST", "path": "/hello", "query_params": {}, "headers": {"user-agent": "bot-crawler"}, "request_count": 150, "time_window": "minute"}' | \
-        opa eval -d policies/api_security.rego "data.api.security.decision" -I
+        opa eval -d policies/api_security.rego "data.api.security.decision" --stdin-input
         
     - name: Validate deployment policies
       run: |
         # Test production deployment
         echo '{"environment": "production", "branch": "main", "tests_passed": true, "security_scan_passed": true, "code_coverage": 85, "has_security_review": true, "container": {"run_as_non_root": true, "read_only_root_fs": true, "privileged": false}}' | \
-        opa eval -d policies/deployment.rego "data.deployment.security.decision" -I
+        opa eval -d policies/deployment.rego "data.deployment.security.decision" --stdin-input
         
   deploy:
     runs-on: ubuntu-latest
@@ -131,7 +131,7 @@ jobs:
         EOF
         )
         
-        DECISION=$(echo "$DEPLOYMENT_DATA" | opa eval -d policies/deployment.rego "data.deployment.security.decision" -I --format raw)
+        DECISION=$(echo "$DEPLOYMENT_DATA" | opa eval -d policies/deployment.rego "data.deployment.security.decision" --stdin-input --format raw)
         
         if [ "$(echo "$DECISION" | jq -r '.deployment_valid')" != "true" ]; then
           echo "Deployment validation failed: $(echo "$DECISION" | jq -r '.reason')"

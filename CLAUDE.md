@@ -41,7 +41,7 @@ opa test policies/ test/
 opa fmt --diff policies/
 
 # Test specific policy with input
-echo '{"method": "GET", "path": "/hello", "query_params": {"name": "test"}, "headers": {"user-agent": "Mozilla/5.0"}, "request_count": 10, "time_window": "minute"}' | opa eval -d policies/api_security.rego "data.api.security.decision" -I
+echo '{"method": "GET", "path": "/hello", "query_params": {"name": "test"}, "headers": {"user-agent": "Mozilla/5.0"}, "request_count": 10, "time_window": "minute"}' | opa eval -d policies/api_security.rego "data.api.security.decision" --stdin-input
 
 # Run local OPA test script
 ./scripts/test-opa.sh
@@ -59,9 +59,9 @@ curl -X POST http://localhost:8181/v1/data/api/security/decision -H "Content-Typ
 ## Important Technical Details
 
 ### OPA Version Compatibility
-- Uses OPA 0.57.0 (specified in GitHub Actions)
-- Policies use older Rego syntax (no `import rego.v1`, `=` instead of `:=`, rule conditions in body)
-- Use `-I` flag instead of `--input-stdin` for policy evaluation
+- Uses latest OPA version (currently 1.6.0)
+- Policies use modern Rego syntax with `import rego.v1` and `:=` assignment operator
+- Use `--stdin-input` flag for policy evaluation
 
 ### Policy Input Structure
 API Security Policy expects:
