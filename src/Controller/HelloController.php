@@ -8,7 +8,9 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class HelloController
 {
-    #[Route('/hello', name: 'hello', methods: ['GET'])]
+    /**
+     * @Route("/hello", name="hello", methods={"GET"})
+     */
     public function hello(Request $request): JsonResponse
     {
         $name = $request->query->get('name', 'World');
@@ -21,7 +23,9 @@ class HelloController
         ]);
     }
 
-    #[Route('/api/status', name: 'status', methods: ['GET'])]
+    /**
+     * @Route("/api/status", name="status", methods={"GET"})
+     */
     public function status(): JsonResponse
     {
         return new JsonResponse([

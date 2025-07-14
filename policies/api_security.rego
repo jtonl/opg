@@ -1,7 +1,5 @@
 package api.security
 
-import rego.v1
-
 # Default deny
 default allow := false
 

@@ -1,7 +1,5 @@
 package api.security
 
-import rego.v1
-
 # Test allow for valid GET request to /hello
 test_allow_hello_get if {
     allow with input as {
