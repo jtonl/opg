@@ -1,22 +1,28 @@
 package deployment.security
 
 # Default deny
-default allow := false
+default allow = false
 
 # Validate deployment environment
-allow if {
-    input.environment in ["development", "staging", "production"]
-    input.branch in allowed_branches[input.environment]
+allow {
+    allowed_environments[input.environment]
+    allowed_branches[input.environment][_] == input.branch
 }
 
-allowed_branches := {
-    "development": ["develop", "feature/*"],
-    "staging": ["staging", "release/*"],
+allowed_environments = {
+    "development": true,
+    "staging": true,
+    "production": true
+}
+
+allowed_branches = {
+    "development": ["develop", "feature/test"],
+    "staging": ["staging", "release/test"],
     "production": ["main", "master"]
 }
 
 # Security checks for production deployments
-production_checks_passed if {
+production_checks_passed {
     input.environment == "production"
     input.tests_passed == true
     input.security_scan_passed == true
@@ -24,26 +30,26 @@ production_checks_passed if {
     input.has_security_review == true
 }
 
-production_checks_passed if {
+production_checks_passed {
     input.environment != "production"
 }
 
 # Validate container security
-container_security_valid if {
+container_security_valid {
     input.container.run_as_non_root == true
     input.container.read_only_root_fs == true
     not input.container.privileged
 }
 
 # Complete deployment validation
-deployment_valid if {
+deployment_valid {
     allow
     production_checks_passed
     container_security_valid
 }
 
 # Response with detailed decision
-decision := {
+decision = {
     "allow": allow,
     "deployment_valid": deployment_valid,
     "production_checks_passed": production_checks_passed,
@@ -51,7 +57,18 @@ decision := {
     "reason": reason
 }
 
-reason := "Deployment allowed" if deployment_valid
-reason := "Production checks failed" if not production_checks_passed
-reason := "Container security validation failed" if not container_security_valid
-reason := "Branch not allowed for environment" if not allow
+reason = "Deployment allowed" {
+    deployment_valid
+}
+
+reason = "Production checks failed" {
+    not production_checks_passed
+}
+
+reason = "Container security validation failed" {
+    not container_security_valid
+}
+
+reason = "Branch not allowed for environment" {
+    not allow
+}

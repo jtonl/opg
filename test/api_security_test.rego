@@ -1,7 +1,7 @@
 package api.security
 
 # Test allow for valid GET request to /hello
-test_allow_hello_get if {
+test_allow_hello_get {
     allow with input as {
         "method": "GET",
         "path": "/hello"
@@ -9,7 +9,7 @@ test_allow_hello_get if {
 }
 
 # Test allow for valid GET request to /api/status
-test_allow_status_get if {
+test_allow_status_get {
     allow with input as {
         "method": "GET",
         "path": "/api/status"
@@ -17,7 +17,7 @@ test_allow_status_get if {
 }
 
 # Test deny for POST request to /hello
-test_deny_hello_post if {
+test_deny_hello_post {
     not allow with input as {
         "method": "POST",
         "path": "/hello"
@@ -25,7 +25,7 @@ test_deny_hello_post if {
 }
 
 # Test deny for unknown endpoint
-test_deny_unknown_endpoint if {
+test_deny_unknown_endpoint {
     not allow with input as {
         "method": "GET",
         "path": "/unknown"
@@ -33,7 +33,7 @@ test_deny_unknown_endpoint if {
 }
 
 # Test rate limiting
-test_rate_limit_exceeded if {
+test_rate_limit_exceeded {
     rate_limit_exceeded with input as {
         "request_count": 150,
         "time_window": "minute"
@@ -41,7 +41,7 @@ test_rate_limit_exceeded if {
 }
 
 # Test query parameter validation
-test_query_params_valid if {
+test_query_params_valid {
     query_params_valid with input as {
         "query_params": {
             "name": "test"
@@ -50,7 +50,7 @@ test_query_params_valid if {
 }
 
 # Test query parameter validation with long name
-test_query_params_invalid_long if {
+test_query_params_invalid_long {
     not query_params_valid with input as {
         "query_params": {
             "name": "this_is_a_very_long_name_that_exceeds_the_limit_of_fifty_characters"
@@ -59,7 +59,7 @@ test_query_params_invalid_long if {
 }
 
 # Test security headers validation
-test_security_headers_valid if {
+test_security_headers_valid {
     security_headers_valid with input as {
         "headers": {
             "user-agent": "Mozilla/5.0 (compatible; browser)"
@@ -68,7 +68,7 @@ test_security_headers_valid if {
 }
 
 # Test security headers validation with bot
-test_security_headers_invalid_bot if {
+test_security_headers_invalid_bot {
     not security_headers_valid with input as {
         "headers": {
             "user-agent": "bot-crawler"
