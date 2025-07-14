@@ -106,4 +106,6 @@ The GitHub Actions workflow has 5 jobs that run in sequence:
 - `staging`: `staging`, `release/test` branches  
 - `production`: `main`, `master` branches
 
+Note: The workflow is configured to trigger on `master` and `develop` branches, with `master` deploying to production and `develop` to development environment.
+
 Production deployments require additional security checks (tests passed, security scan, 80%+ code coverage, security review).

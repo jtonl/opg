@@ -94,7 +94,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [test, opa-policy-test, security-validation]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
     steps:
     - uses: actions/checkout@v4
     
@@ -106,7 +106,7 @@ jobs:
     - name: Determine deployment environment
       id: env
       run: |
-        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+        if [ "${{ github.ref }}" == "refs/heads/master" ]; then
           echo "environment=production" >> $GITHUB_OUTPUT
         elif [ "${{ github.ref }}" == "refs/heads/develop" ]; then
           echo "environment=development" >> $GITHUB_OUTPUT
@@ -172,7 +172,7 @@ jobs:
   runtime-policy-server:
     runs-on: ubuntu-latest
     needs: [deploy]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     steps:
     - uses: actions/checkout@v4
     
