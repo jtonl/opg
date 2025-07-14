@@ -1,28 +1,21 @@
-# Symfony API with Open Policy Agent (OPA) Integration
+# Simple PHP API with Open Policy Agent (OPA) Integration
 
-This example demonstrates how to integrate Open Policy Agent (OPA) with a minimal Symfony API application in a GitHub Actions CI/CD workflow.
+This example demonstrates how to integrate Open Policy Agent (OPA) with a minimal PHP API application in a GitHub Actions CI/CD workflow.
 
 ## Project Structure
 
 ```
 ├── .github/workflows/ci-cd.yml    # GitHub Actions workflow with OPA integration
-├── composer.json                  # PHP dependencies
-├── public/index.php              # Application entry point
-├── src/
-│   ├── Kernel.php               # Symfony kernel
-│   └── Controller/
-│       └── HelloController.php  # API endpoints
-├── config/
-│   ├── routes.yaml              # Route configuration
-│   ├── services.yaml            # Service configuration
-│   └── packages/
-│       └── framework.yaml       # Framework configuration
+├── composer.json                  # PHP dependencies (minimal)
+├── public/index.php              # Simple PHP API application
 ├── policies/
 │   ├── api_security.rego        # API security policies
 │   └── deployment.rego          # Deployment policies
 ├── test/
 │   └── api_security_test.rego   # OPA policy tests
-└── .env                         # Environment variables
+├── scripts/
+│   └── test-opa.sh              # Local OPA testing script
+└── docker-compose.yml           # Docker setup with OPA
 ```
 
 ## API Endpoints
@@ -59,7 +52,7 @@ The workflow includes several jobs:
 
 ## Getting Started
 
-1. **Install dependencies:**
+1. **Install dependencies (optional):**
    ```bash
    composer install
    ```
@@ -122,6 +115,4 @@ The workflow includes several jobs:
 
 ## Environment Variables
 
-- `APP_ENV` - Application environment (dev/prod)
-- `APP_DEBUG` - Debug mode flag
-- `APP_SECRET` - Application secret key
+No environment variables required for the simple PHP implementation.

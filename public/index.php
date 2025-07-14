@@ -1,21 +1,63 @@
 <?php
 
-use App\Kernel;
-use Symfony\Component\Dotenv\Dotenv;
-use Symfony\Component\ErrorHandler\Debug;
-use Symfony\Component\HttpFoundation\Request;
+// Simple PHP API with OPA integration
+header('Content-Type: application/json');
 
-require dirname(__DIR__).'/vendor/autoload.php';
+// Get the request method and path
+$method = $_SERVER['REQUEST_METHOD'];
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$query = $_GET;
 
-(new Dotenv())->bootEnv(dirname(__DIR__).'/.env');
-
-if ($_SERVER['APP_DEBUG']) {
-    umask(0000);
-    Debug::enable();
+// Simple routing
+switch ($path) {
+    case '/hello':
+        if ($method === 'GET') {
+            handleHello($query);
+        } else {
+            sendError(405, 'Method Not Allowed');
+        }
+        break;
+        
+    case '/api/status':
+        if ($method === 'GET') {
+            handleStatus();
+        } else {
+            sendError(405, 'Method Not Allowed');
+        }
+        break;
+        
+    default:
+        sendError(404, 'Not Found');
+        break;
 }
 
-$kernel = new Kernel($_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG']);
-$request = Request::createFromGlobals();
-$response = $kernel->handle($request);
-$response->send();
-$kernel->terminate($request, $response);
+function handleHello($query) {
+    $name = $query['name'] ?? 'World';
+    
+    $response = [
+        'message' => "Hello, {$name}!",
+        'timestamp' => date('c'),
+        'method' => $_SERVER['REQUEST_METHOD'],
+        'path' => parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)
+    ];
+    
+    echo json_encode($response);
+}
+
+function handleStatus() {
+    $response = [
+        'status' => 'healthy',
+        'service' => 'simple-php-opa-api',
+        'version' => '1.0.0'
+    ];
+    
+    echo json_encode($response);
+}
+
+function sendError($code, $message) {
+    http_response_code($code);
+    echo json_encode([
+        'error' => $message,
+        'code' => $code
+    ]);
+}
