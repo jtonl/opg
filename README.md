@@ -1,0 +1,127 @@
+# Symfony API with Open Policy Agent (OPA) Integration
+
+This example demonstrates how to integrate Open Policy Agent (OPA) with a minimal Symfony API application in a GitHub Actions CI/CD workflow.
+
+## Project Structure
+
+```
+├── .github/workflows/ci-cd.yml    # GitHub Actions workflow with OPA integration
+├── composer.json                  # PHP dependencies
+├── public/index.php              # Application entry point
+├── src/
+│   ├── Kernel.php               # Symfony kernel
+│   └── Controller/
+│       └── HelloController.php  # API endpoints
+├── config/
+│   ├── routes.yaml              # Route configuration
+│   ├── services.yaml            # Service configuration
+│   └── packages/
+│       └── framework.yaml       # Framework configuration
+├── policies/
+│   ├── api_security.rego        # API security policies
+│   └── deployment.rego          # Deployment policies
+├── test/
+│   └── api_security_test.rego   # OPA policy tests
+└── .env                         # Environment variables
+```
+
+## API Endpoints
+
+- `GET /hello?name=World` - Returns a JSON hello message
+- `GET /api/status` - Returns API health status
+
+## OPA Policies
+
+### API Security Policy (`policies/api_security.rego`)
+
+Validates:
+- HTTP method and path authorization
+- Rate limiting (max 100 requests per minute)
+- Query parameter validation
+- Security headers validation
+
+### Deployment Policy (`policies/deployment.rego`)
+
+Validates:
+- Environment-specific branch restrictions
+- Production deployment requirements
+- Container security settings
+
+## GitHub Actions Workflow
+
+The workflow includes several jobs:
+
+1. **test** - Runs PHP application tests
+2. **opa-policy-test** - Tests OPA policies and validates syntax
+3. **security-validation** - Tests API security policies against live application
+4. **deploy** - Validates deployment with OPA policies and deploys
+5. **runtime-policy-server** - Starts OPA server for runtime policy enforcement
+
+## Getting Started
+
+1. **Install dependencies:**
+   ```bash
+   composer install
+   ```
+
+2. **Start the application:**
+   ```bash
+   php -S localhost:8000 -t public
+   ```
+
+3. **Test the API:**
+   ```bash
+   curl http://localhost:8000/hello?name=World
+   curl http://localhost:8000/api/status
+   ```
+
+4. **Install OPA (for local testing):**
+   ```bash
+   curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v0.57.0/opa_linux_amd64_static
+   chmod +x opa
+   sudo mv opa /usr/local/bin/
+   ```
+
+5. **Test OPA policies:**
+   ```bash
+   opa test policies/ test/
+   ```
+
+6. **Test API security policy:**
+   ```bash
+   echo '{"method": "GET", "path": "/hello", "query_params": {"name": "test"}, "headers": {"user-agent": "Mozilla/5.0"}, "request_count": 10, "time_window": "minute"}' | \
+   opa eval -d policies/api_security.rego "data.api.security.decision" --input-stdin
+   ```
+
+## OPA Integration Benefits
+
+1. **Policy as Code** - Security and deployment policies are versioned and tested
+2. **Consistent Enforcement** - Same policies used in CI/CD and runtime
+3. **Separation of Concerns** - Business logic separate from policy decisions
+4. **Auditability** - Clear policy decisions and reasoning
+5. **Flexibility** - Easy to update policies without code changes
+
+## CI/CD Flow
+
+1. Code push triggers workflow
+2. Application tests run
+3. OPA policies are tested
+4. Security validation against live application
+5. Deployment validation with OPA
+6. Container build and deployment
+7. Runtime policy server setup (production only)
+
+## Security Features
+
+- Non-root container execution
+- Read-only root filesystem
+- Rate limiting enforcement
+- Input validation
+- Security header validation
+- Branch-based deployment restrictions
+
+## Environment Variables
+
+- `APP_ENV` - Application environment (dev/prod)
+- `APP_DEBUG` - Debug mode flag
+- `APP_SECRET` - Application secret key

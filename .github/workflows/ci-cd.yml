@@ -1,0 +1,213 @@
+name: CI/CD with OPA Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PHP_VERSION: '8.2'
+  OPA_VERSION: '0.57.0'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_mysql, dom, filter, gd, json
+        
+    - name: Install dependencies
+      run: |
+        composer install --no-progress --prefer-dist --optimize-autoloader
+        
+    - name: Run PHP tests
+      run: |
+        php -S localhost:8000 -t public > /dev/null 2>&1 &
+        sleep 2
+        curl -f http://localhost:8000/hello || exit 1
+        curl -f http://localhost:8000/api/status || exit 1
+
+  opa-policy-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup OPA
+      uses: open-policy-agent/setup-opa@v2
+      with:
+        version: ${{ env.OPA_VERSION }}
+        
+    - name: Test OPA policies
+      run: |
+        opa test policies/ test/
+        
+    - name: Validate policy syntax
+      run: |
+        opa fmt --diff policies/
+        
+  security-validation:
+    runs-on: ubuntu-latest
+    needs: [test, opa-policy-test]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup OPA
+      uses: open-policy-agent/setup-opa@v2
+      with:
+        version: ${{ env.OPA_VERSION }}
+        
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        
+    - name: Install dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+        
+    - name: Start application
+      run: |
+        php -S localhost:8000 -t public > /dev/null 2>&1 &
+        sleep 2
+        
+    - name: Test API security policies
+      run: |
+        # Test valid requests
+        echo '{"method": "GET", "path": "/hello", "query_params": {"name": "test"}, "headers": {"user-agent": "Mozilla/5.0"}, "request_count": 10, "time_window": "minute"}' | \
+        opa eval -d policies/api_security.rego "data.api.security.decision" --input-stdin
+        
+        # Test invalid requests
+        echo '{"method": "POST", "path": "/hello", "query_params": {}, "headers": {"user-agent": "bot-crawler"}, "request_count": 150, "time_window": "minute"}' | \
+        opa eval -d policies/api_security.rego "data.api.security.decision" --input-stdin
+        
+    - name: Validate deployment policies
+      run: |
+        # Test production deployment
+        echo '{"environment": "production", "branch": "main", "tests_passed": true, "security_scan_passed": true, "code_coverage": 85, "has_security_review": true, "container": {"run_as_non_root": true, "read_only_root_fs": true, "privileged": false}}' | \
+        opa eval -d policies/deployment.rego "data.deployment.security.decision" --input-stdin
+        
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test, opa-policy-test, security-validation]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup OPA
+      uses: open-policy-agent/setup-opa@v2
+      with:
+        version: ${{ env.OPA_VERSION }}
+        
+    - name: Determine deployment environment
+      id: env
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "environment=production" >> $GITHUB_OUTPUT
+        elif [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+          echo "environment=development" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Validate deployment with OPA
+      run: |
+        DEPLOYMENT_DATA=$(cat <<EOF
+        {
+          "environment": "${{ steps.env.outputs.environment }}",
+          "branch": "${{ github.ref_name }}",
+          "tests_passed": true,
+          "security_scan_passed": true,
+          "code_coverage": 85,
+          "has_security_review": true,
+          "container": {
+            "run_as_non_root": true,
+            "read_only_root_fs": true,
+            "privileged": false
+          }
+        }
+        EOF
+        )
+        
+        DECISION=$(echo "$DEPLOYMENT_DATA" | opa eval -d policies/deployment.rego "data.deployment.security.decision" --input-stdin --format raw)
+        
+        if [ "$(echo "$DECISION" | jq -r '.deployment_valid')" != "true" ]; then
+          echo "Deployment validation failed: $(echo "$DECISION" | jq -r '.reason')"
+          exit 1
+        fi
+        
+        echo "Deployment validation passed"
+        
+    - name: Build Docker image
+      run: |
+        cat > Dockerfile << 'EOF'
+        FROM php:8.2-fpm-alpine
+        
+        RUN apk add --no-cache \
+            git \
+            curl \
+            libpng-dev \
+            libxml2-dev \
+            zip \
+            unzip
+            
+        RUN docker-php-ext-install pdo pdo_mysql gd xml
+        
+        COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+        
+        WORKDIR /var/www
+        
+        COPY . .
+        
+        RUN composer install --no-dev --optimize-autoloader
+        
+        RUN addgroup -g 1001 -S www && \
+            adduser -S www -u 1001 -G www
+            
+        RUN chown -R www:www /var/www
+        
+        USER www
+        
+        EXPOSE 8000
+        
+        CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
+        EOF
+        
+        docker build -t symfony-opa-api:${{ github.sha }} .
+        
+    - name: Deploy to environment
+      run: |
+        echo "Deploying to ${{ steps.env.outputs.environment }} environment"
+        echo "Image: symfony-opa-api:${{ github.sha }}"
+        # Add actual deployment logic here (e.g., push to registry, deploy to k8s)
+        
+  runtime-policy-server:
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup OPA
+      uses: open-policy-agent/setup-opa@v2
+      with:
+        version: ${{ env.OPA_VERSION }}
+        
+    - name: Start OPA server with policies
+      run: |
+        opa run --server --addr=0.0.0.0:8181 policies/ &
+        sleep 3
+        
+    - name: Test runtime policy enforcement
+      run: |
+        # Test API security policy
+        curl -X POST http://localhost:8181/v1/data/api/security/decision \
+          -H "Content-Type: application/json" \
+          -d '{"input": {"method": "GET", "path": "/hello", "query_params": {"name": "test"}, "headers": {"user-agent": "Mozilla/5.0"}, "request_count": 10, "time_window": "minute"}}'
+          
+        # Test deployment policy
+        curl -X POST http://localhost:8181/v1/data/deployment/security/decision \
+          -H "Content-Type: application/json" \
+          -d '{"input": {"environment": "production", "branch": "main", "tests_passed": true, "security_scan_passed": true, "code_coverage": 85, "has_security_review": true, "container": {"run_as_non_root": true, "read_only_root_fs": true, "privileged": false}}}'

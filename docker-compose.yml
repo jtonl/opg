@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=dev
+      - APP_DEBUG=true
+    depends_on:
+      - opa
+    networks:
+      - app-network
+
+  opa:
+    image: openpolicyagent/opa:0.57.0
+    ports:
+      - "8181:8181"
+    command: 
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "/policies"
+    volumes:
+      - ./policies:/policies:ro
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
