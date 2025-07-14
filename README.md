@@ -83,7 +83,7 @@ The workflow includes several jobs:
 6. **Test API security policy:**
    ```bash
    echo '{"method": "GET", "path": "/hello", "query_params": {"name": "test"}, "headers": {"user-agent": "Mozilla/5.0"}, "request_count": 10, "time_window": "minute"}' | \
-   opa eval -d policies/api_security.rego "data.api.security.decision" --input-stdin
+   opa eval -d policies/api_security.rego "data.api.security.decision" -I
    ```
 
 ## OPA Integration Benefits

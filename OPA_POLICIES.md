@@ -603,7 +603,7 @@ function validateRequest($method, $path, $params, $headers, $requestCount) {
 opa fmt --diff policies/
 
 # Evaluate policy with debug output
-opa eval -d policies/ "data.api.security.allow" --input-stdin --explain=debug
+opa eval -d policies/ "data.api.security.allow" -I --explain=debug
 
 # Run specific test
 opa test test/api_security_test.rego::test_allow_hello_get
