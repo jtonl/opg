@@ -17,6 +17,11 @@
             "App\\": "src/"
         }
     },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true
+        }
+    },
     "scripts": {
         "auto-scripts": {
             "cache:clear": "symfony-cmd"
