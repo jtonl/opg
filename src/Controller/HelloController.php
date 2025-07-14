@@ -27,7 +27,7 @@ class HelloController
         return new JsonResponse([
             'status' => 'healthy',
             'service' => 'symfony-opa-api',
-            'version' => '1.0.1'
+            'version' => '1.0.2'
         ]);
     }
 }
