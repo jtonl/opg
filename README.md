@@ -15,6 +15,8 @@ This example demonstrates how to integrate Open Policy Agent (OPA) with a minima
 │   └── api_security_test.rego   # OPA policy tests
 ├── scripts/
 │   └── test-opa.sh              # Local OPA testing script
+├── examples/
+│   └── nginx/                   # nginx + OPA integration example
 └── docker-compose.yml           # Docker setup with OPA
 ```
 
@@ -120,7 +122,24 @@ The workflow includes several jobs:
 
 No environment variables required for the simple PHP implementation.
 
+## Examples
+
+### nginx Integration
+
+The `examples/nginx/` directory contains a complete nginx + OPA integration example with:
+- nginx as reverse proxy with policy enforcement
+- Redis-based rate limiting
+- Custom logging and monitoring
+- Docker Compose setup
+
+```bash
+cd examples/nginx/
+make dev-setup
+make test
+```
+
 ## Additional Documentation
 
 - **OPA_POLICIES.md** - Comprehensive documentation of all OPA policies, syntax, and usage
 - **CLAUDE.md** - Development guidance for working with this codebase
+- **examples/README.md** - Overview of integration examples and patterns
