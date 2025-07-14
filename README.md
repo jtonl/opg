@@ -1,6 +1,6 @@
 # Simple PHP API with Open Policy Agent (OPA) Integration
 
-This example demonstrates how to integrate Open Policy Agent (OPA) with a minimal PHP API application in a GitHub Actions CI/CD workflow.
+This example demonstrates how to integrate Open Policy Agent (OPA) with a minimal PHP API application in a GitHub Actions CI/CD workflow. Uses OPA 1.6.0 with modern Rego v1 syntax.
 
 ## Project Structure
 
@@ -47,8 +47,10 @@ The workflow includes several jobs:
 1. **test** - Runs PHP application tests
 2. **opa-policy-test** - Tests OPA policies and validates syntax
 3. **security-validation** - Tests API security policies against live application
-4. **deploy** - Validates deployment with OPA policies and deploys
-5. **runtime-policy-server** - Starts OPA server for runtime policy enforcement
+4. **deploy** - Validates deployment with OPA policies and deploys (runs on `master` and `develop` branches)
+5. **runtime-policy-server** - Starts OPA server for runtime policy enforcement (production only on `master` branch)
+
+**Branch Configuration**: Workflow triggers on `master` and `develop` branches, with `master` → production and `develop` → development.
 
 ## Getting Started
 
@@ -89,20 +91,21 @@ The workflow includes several jobs:
 ## OPA Integration Benefits
 
 1. **Policy as Code** - Security and deployment policies are versioned and tested
-2. **Consistent Enforcement** - Same policies used in CI/CD and runtime
-3. **Separation of Concerns** - Business logic separate from policy decisions
-4. **Auditability** - Clear policy decisions and reasoning
-5. **Flexibility** - Easy to update policies without code changes
+2. **Modern Syntax** - Uses OPA 1.6.0 with Rego v1 syntax for better maintainability
+3. **Consistent Enforcement** - Same policies used in CI/CD and runtime
+4. **Separation of Concerns** - Business logic separate from policy decisions
+5. **Auditability** - Clear policy decisions and reasoning
+6. **Flexibility** - Easy to update policies without code changes
 
 ## CI/CD Flow
 
-1. Code push triggers workflow
+1. Code push triggers workflow (on `master` or `develop` branches)
 2. Application tests run
-3. OPA policies are tested
+3. OPA policies are tested with modern Rego v1 syntax
 4. Security validation against live application
 5. Deployment validation with OPA
-6. Container build and deployment
-7. Runtime policy server setup (production only)
+6. Container build and deployment (branch-specific environments)
+7. Runtime policy server setup (production only on `master` branch)
 
 ## Security Features
 
@@ -116,3 +119,8 @@ The workflow includes several jobs:
 ## Environment Variables
 
 No environment variables required for the simple PHP implementation.
+
+## Additional Documentation
+
+- **OPA_POLICIES.md** - Comprehensive documentation of all OPA policies, syntax, and usage
+- **CLAUDE.md** - Development guidance for working with this codebase

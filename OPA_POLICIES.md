@@ -16,7 +16,7 @@ This document provides comprehensive documentation for the OPA policies implemen
 
 ## Overview
 
-Open Policy Agent (OPA) is an open-source general-purpose policy engine that provides a unified toolset for policy authoring, distribution, and enforcement. In this project, OPA is used to:
+Open Policy Agent (OPA) is an open-source general-purpose policy engine that provides a unified toolset for policy authoring, distribution, and enforcement. This project uses OPA 1.6.0 with modern Rego v1 syntax. In this project, OPA is used to:
 
 - **API Security**: Validate incoming API requests against security policies
 - **Deployment Security**: Enforce deployment rules and security requirements
@@ -45,12 +45,14 @@ test/
 
 ### Rego Language Basics
 
-Rego is a declarative language designed for expressing policies over complex hierarchical data structures. Key concepts:
+Rego is a declarative language designed for expressing policies over complex hierarchical data structures. This project uses modern Rego v1 syntax. Key concepts:
 
-- **Rules**: Define conditions that must be met
+- **Rules**: Define conditions that must be met using `if` syntax
 - **Data**: Input data and static policy data
 - **Queries**: Requests for policy decisions
 - **Packages**: Namespace for organizing policies
+- **Assignments**: Use `:=` for value assignment, `=` for unification
+- **Imports**: Use `import rego.v1` for modern syntax features
 
 ## API Security Policy
 
@@ -61,25 +63,27 @@ This policy validates incoming API requests against security rules.
 #### Package Declaration
 ```rego
 package api.security
+
+import rego.v1
 ```
 
 #### Core Rules
 
 ##### 1. Default Deny
 ```rego
-default allow = false
+default allow := false
 ```
 - **Purpose**: Implements a security-first approach where all requests are denied by default
 - **Impact**: Only explicitly allowed requests will pass validation
 
 ##### 2. Endpoint Authorization
 ```rego
-allow {
+allow if {
     input.method == "GET"
     input.path == "/hello"
 }
 
-allow {
+allow if {
     input.method == "GET"
     input.path == "/api/status"
 }
@@ -92,9 +96,9 @@ allow {
 
 ##### 3. Rate Limiting
 ```rego
-default rate_limit_exceeded = false
+default rate_limit_exceeded := false
 
-rate_limit_exceeded {
+rate_limit_exceeded if {
     input.request_count > 100
     input.time_window == "minute"
 }
@@ -105,12 +109,12 @@ rate_limit_exceeded {
 
 ##### 4. Query Parameter Validation
 ```rego
-query_params_valid {
+query_params_valid if {
     input.query_params.name
     count(input.query_params.name) <= 50
 }
 
-query_params_valid {
+query_params_valid if {
     not input.query_params.name
 }
 ```
@@ -122,7 +126,7 @@ query_params_valid {
 
 ##### 5. Security Headers Validation
 ```rego
-security_headers_valid {
+security_headers_valid if {
     input.headers["user-agent"]
     not contains(input.headers["user-agent"], "bot")
     not contains(input.headers["user-agent"], "crawler")
@@ -136,7 +140,7 @@ security_headers_valid {
 
 ##### 6. Complete Request Validation
 ```rego
-request_valid {
+request_valid if {
     allow
     not rate_limit_exceeded
     query_params_valid
@@ -214,31 +218,33 @@ This policy validates deployment requests against security and operational requi
 #### Package Declaration
 ```rego
 package deployment.security
+
+import rego.v1
 ```
 
 #### Core Rules
 
 ##### 1. Default Deny
 ```rego
-default allow = false
+default allow := false
 ```
 - **Purpose**: Prevents unauthorized deployments
 - **Impact**: Only explicitly approved deployments proceed
 
 ##### 2. Environment and Branch Validation
 ```rego
-allow {
-    allowed_environments[input.environment]
-    allowed_branches[input.environment][_] == input.branch
+allow if {
+    input.environment in allowed_environments
+    input.branch in allowed_branches[input.environment]
 }
 
-allowed_environments = {
-    "development": true,
-    "staging": true,
-    "production": true
+allowed_environments := {
+    "development",
+    "staging", 
+    "production"
 }
 
-allowed_branches = {
+allowed_branches := {
     "development": ["develop", "feature/test"],
     "staging": ["staging", "release/test"],
     "production": ["main", "master"]
@@ -253,7 +259,7 @@ allowed_branches = {
 
 ##### 3. Production Deployment Checks
 ```rego
-production_checks_passed {
+production_checks_passed if {
     input.environment == "production"
     input.tests_passed == true
     input.security_scan_passed == true
@@ -261,7 +267,7 @@ production_checks_passed {
     input.has_security_review == true
 }
 
-production_checks_passed {
+production_checks_passed if {
     input.environment != "production"
 }
 ```
@@ -275,7 +281,7 @@ production_checks_passed {
 
 ##### 4. Container Security Validation
 ```rego
-container_security_valid {
+container_security_valid if {
     input.container.run_as_non_root == true
     input.container.read_only_root_fs == true
     not input.container.privileged
@@ -290,7 +296,7 @@ container_security_valid {
 
 ##### 5. Complete Deployment Validation
 ```rego
-deployment_valid {
+deployment_valid if {
     allow
     production_checks_passed
     container_security_valid
@@ -353,7 +359,7 @@ Comprehensive test suite for API security policies.
 
 Each test follows the pattern:
 ```rego
-test_<scenario_name> {
+test_<scenario_name> if {
     <rule_name> with input as <test_data>
 }
 ```
@@ -603,7 +609,7 @@ function validateRequest($method, $path, $params, $headers, $requestCount) {
 opa fmt --diff policies/
 
 # Evaluate policy with debug output
-opa eval -d policies/ "data.api.security.allow" -I --explain=debug
+opa eval -d policies/ "data.api.security.allow" --stdin-input --explain=debug
 
 # Run specific test
 opa test test/api_security_test.rego::test_allow_hello_get
@@ -641,9 +647,10 @@ curl -X POST http://localhost:8181/v1/data/api/security/decision \
 This comprehensive OPA policy implementation provides:
 
 - **Robust Security**: Multi-layered validation for API and deployment security
+- **Modern Syntax**: Uses OPA 1.6.0 with Rego v1 syntax for better maintainability
 - **Flexibility**: Easy to extend and modify policies
 - **Observability**: Detailed policy decisions and reasoning
 - **Integration**: Seamless CI/CD and runtime integration
 - **Testing**: Comprehensive test coverage for reliability
 
-The policies follow security best practices and provide a solid foundation for policy-based access control in modern applications.
+The policies follow security best practices and provide a solid foundation for policy-based access control in modern applications. The implementation uses modern Rego syntax with proper conflict resolution and priority-based decision making.
